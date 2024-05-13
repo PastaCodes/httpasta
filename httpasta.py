@@ -14,13 +14,13 @@ Marco Buda, 2024.
 import sys
 import socket
 import threading
-import os.path
+import os
 
 DEFAULT_SERVER_PORT = 8080
 
 
 def response(client_connection, status_code, reason_phrase, body):
-    client_connection.send(f'HTTP/1.1 {status_code} {reason_phrase}\r\n\r\n{body}\r\n'.encode())
+    client_connection.send(f'HTTP/1.1 {status_code} {reason_phrase}\r\n\r\n'.encode() + body + '\r\n'.encode())
 
 
 REASON_PHRASES = {
@@ -35,21 +35,23 @@ ERROR_BODY = '<html><head><title>{0} {1}</title></head><body><h1>{0} {1}</h1></b
 
 def error_response(client_connection, status_code, request_line, client_id):
     reason_phrase = REASON_PHRASES[status_code]
-    print(f'Responding with error {status_code} ({reason_phrase}) to request {request_line!r} from {client_id}.')
+    print(f'Responding with error {status_code} ({reason_phrase}) to request "{request_line}" from {client_id}.')
     response(client_connection, status_code, reason_phrase, ERROR_BODY.format(status_code, reason_phrase))
 
 
 def success_response(client_connection, content, file_name, request_line, client_id):
-    print(f'Responding with file {file_name!r} to request {request_line!r} from {client_id}.')
+    print(f'Responding with file "{file_name}" to request "{request_line}" from {client_id}.')
     response(client_connection, 200, 'OK', content)
 
 
-POSTFIXES = ['', '/index.html']
+POSTFIXES = ['.', 'index.html']
 
 
 def handle_request(client_connection, client_id):
     with client_connection:
         request = client_connection.recv(1024).decode()
+        if request == '':
+            return
         request_lines = request.splitlines()
         request_line = request_lines[0]
         match request_line.split():
@@ -59,8 +61,9 @@ def handle_request(client_connection, client_id):
                     path = os.path.normpath(path)
                     if not path.startswith('..'):
                         for postfix in POSTFIXES:
+                            full_path = os.path.normpath(os.path.join(path, postfix))
                             try:
-                                with open(path + postfix, 'r') as file:
+                                with open(full_path, 'rb') as file:
                                     content = file.read()
                                 success_response(client_connection, content, file.name, request_line, client_id)
                                 break
