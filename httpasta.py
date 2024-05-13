@@ -1,3 +1,16 @@
+#!/usr/bin/env python
+"""
+HTTPasta is a static web server written in Python, developed as a university assignment.
+It supports basic HTTP/1.1 GET requests and features simple error handling.
+For more information, see documentation.pdf.
+
+Requires Python 3.10+.
+Usage: httpasta.py [port].
+Press Ctrl+Break to quit (Ctrl+Pausa Interr on italian keyboards).
+
+Marco Buda, 2024.
+"""
+
 import sys
 import socket
 import threading
@@ -6,7 +19,7 @@ import os.path
 DEFAULT_SERVER_PORT = 8080
 
 
-def respond(client_connection, status_code, reason_phrase, body):
+def response(client_connection, status_code, reason_phrase, body):
     client_connection.send(f'HTTP/1.1 {status_code} {reason_phrase}\r\n\r\n{body}\r\n'.encode())
 
 
@@ -20,15 +33,15 @@ REASON_PHRASES = {
 ERROR_BODY = '<html><head><title>{0} {1}</title></head><body><h1>{0} {1}</h1></body></html>'
 
 
-def error(client_connection, status_code, request_line, client_id):
+def error_response(client_connection, status_code, request_line, client_id):
     reason_phrase = REASON_PHRASES[status_code]
     print(f'Responding with error {status_code} ({reason_phrase}) to request {request_line!r} from {client_id}.')
-    respond(client_connection, status_code, reason_phrase, ERROR_BODY.format(status_code, reason_phrase))
+    response(client_connection, status_code, reason_phrase, ERROR_BODY.format(status_code, reason_phrase))
 
 
-def success(client_connection, content, file_name, request_line, client_id):
+def success_response(client_connection, content, file_name, request_line, client_id):
     print(f'Responding with file {file_name!r} to request {request_line!r} from {client_id}.')
-    respond(client_connection, 200, 'OK', content)
+    response(client_connection, 200, 'OK', content)
 
 
 POSTFIXES = ['', '/index.html']
@@ -49,22 +62,22 @@ def handle_request(client_connection, client_id):
                             try:
                                 with open(path + postfix, 'r') as file:
                                     content = file.read()
-                                success(client_connection, content, file.name, request_line, client_id)
+                                success_response(client_connection, content, file.name, request_line, client_id)
                                 break
-                            except FileNotFoundError:
+                            except (FileNotFoundError, PermissionError):
                                 continue
                         else:
-                            error(client_connection, 404, request_line, client_id)  # Not Found
+                            error_response(client_connection, 404, request_line, client_id)  # Not Found
                     else:
-                        error(client_connection, 403, request_line, client_id)  # Forbidden
+                        error_response(client_connection, 403, request_line, client_id)  # Forbidden
                 else:
-                    error(client_connection, 400, request_line, client_id)  # Bad Request
+                    error_response(client_connection, 400, request_line, client_id)  # Bad Request
             case [_, _, b'HTTP/1.1']:
-                error(client_connection, 405, request_line, client_id)  # Method Not Allowed
+                error_response(client_connection, 405, request_line, client_id)  # Method Not Allowed
             case [_, _, _]:
-                error(client_connection, 505, request_line, client_id)  # HTTP Version Not Supported
+                error_response(client_connection, 505, request_line, client_id)  # HTTP Version Not Supported
             case _:
-                error(client_connection, 400, request_line, client_id)  # Bad Request
+                error_response(client_connection, 400, request_line, client_id)  # Bad Request
 
 
 def main():
@@ -73,13 +86,16 @@ def main():
     elif len(sys.argv) == 2 and sys.argv[1].isnumeric():
         server_port = int(sys.argv[1])
     else:
-        print('Usage: httpasta.py [port]', file=sys.stderr)
+        print('Usage: httpasta.py [port].', file=sys.stderr)
         exit(1)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     with server_socket:
-        server_socket.bind(('localhost', server_port))
+        try:
+            server_socket.bind(('localhost', server_port))
+        except OSError:
+            print(f'Port {server_port} is already in use.', file=sys.stderr)
+            exit(1)
         server_socket.listen(1)
-
         print(f"Listening on port {server_port}.")
         while True:
             client_connection, client_address = server_socket.accept()
