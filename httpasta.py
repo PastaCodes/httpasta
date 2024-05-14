@@ -36,7 +36,7 @@ ERROR_BODY = '<html><head><title>{0} {1}</title></head><body><h1>{0} {1}</h1></b
 def error_response(client_connection, status_code, request_line, client_id):
     reason_phrase = REASON_PHRASES[status_code]
     print(f'Responding with error {status_code} ({reason_phrase}) to request "{request_line}" from {client_id}.')
-    response(client_connection, status_code, reason_phrase, ERROR_BODY.format(status_code, reason_phrase))
+    response(client_connection, status_code, reason_phrase, ERROR_BODY.format(status_code, reason_phrase).encode())
 
 
 def success_response(client_connection, content, file_name, request_line, client_id):
@@ -56,25 +56,22 @@ def handle_request(client_connection, client_id):
         request_line = request_lines[0]
         match request_line.split():
             case ['GET', url, 'HTTP/1.1']:
-                if url.startswith('/'):
-                    path = url[1:].split('?')[0]
-                    path = os.path.normpath(path)
-                    if not path.startswith('..'):
-                        for postfix in POSTFIXES:
-                            full_path = os.path.normpath(os.path.join(path, postfix))
-                            try:
-                                with open(full_path, 'rb') as file:
-                                    content = file.read()
-                                success_response(client_connection, content, file.name, request_line, client_id)
-                                break
-                            except (FileNotFoundError, PermissionError):
-                                continue
-                        else:
-                            error_response(client_connection, 404, request_line, client_id)  # Not Found
+                path = url.strip('/').split('?')[0]
+                path = os.path.normpath(path)
+                if not path.startswith('..'):
+                    for postfix in POSTFIXES:
+                        full_path = os.path.normpath(os.path.join(path, postfix))
+                        try:
+                            with open(full_path, 'rb') as file:
+                                content = file.read()
+                            success_response(client_connection, content, file.name, request_line, client_id)
+                            break
+                        except (FileNotFoundError, PermissionError):
+                            continue
                     else:
-                        error_response(client_connection, 403, request_line, client_id)  # Forbidden
+                        error_response(client_connection, 404, request_line, client_id)  # Not Found
                 else:
-                    error_response(client_connection, 400, request_line, client_id)  # Bad Request
+                    error_response(client_connection, 403, request_line, client_id)  # Forbidden
             case [_, _, b'HTTP/1.1']:
                 error_response(client_connection, 405, request_line, client_id)  # Method Not Allowed
             case [_, _, _]:
