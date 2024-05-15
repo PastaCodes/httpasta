@@ -56,7 +56,7 @@ def handle_request(client_connection, client_id):
         request_line = request_lines[0]
         match request_line.split():
             case ['GET', url, 'HTTP/1.1']:
-                path = url.strip('/').split('?')[0]
+                path = url.lstrip('/').split('?')[0]
                 path = os.path.normpath(path)
                 if not path.startswith('..'):
                     for postfix in POSTFIXES:
