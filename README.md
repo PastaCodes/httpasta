@@ -8,4 +8,4 @@ Requires Python 3.10+.\
 Usage: `httpasta.py [port]`.\
 Press <kbd>Ctrl</kbd>+<kbd>Break</kbd> to quit (<kbd>Ctrl</kbd>+<kbd>Pausa Interr</kbd> on italian keyboards).
 
-Marco Buda, 2024.
+Marco Buda (0001071464), 2024.
