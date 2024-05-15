@@ -83,7 +83,7 @@ def handle_request(client_connection, client_id):
 def main():
     if len(sys.argv) == 1:
         server_port = DEFAULT_SERVER_PORT
-    elif len(sys.argv) == 2 and sys.argv[1].isnumeric():
+    elif len(sys.argv) == 2 and sys.argv[1].isnumeric() and int(sys.argv[1]) < 65536:
         server_port = int(sys.argv[1])
     else:
         print('Usage: httpasta.py [port].', file=sys.stderr)
