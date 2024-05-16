@@ -6,6 +6,6 @@ For more information, see the [documentation](documentation.pdf).
 
 Requires Python 3.10+.\
 Usage: `httpasta.py [port]`.\
-Press <kbd>Ctrl</kbd>+<kbd>Break</kbd> to quit (<kbd>Ctrl</kbd>+<kbd>Pausa Interr</kbd> on italian keyboards).
+Press <kbd>Enter</kbd>to stop the server.
 
 Marco Buda (0001071464), 2024.
