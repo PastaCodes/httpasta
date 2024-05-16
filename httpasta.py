@@ -49,10 +49,15 @@ POSTFIXES = ['.', 'index.html']
 
 def handle_request(client_connection, client_id):
     with client_connection:
-        request = client_connection.recv(1024).decode()
+        request = client_connection.recv(1024)
         if request == '':
+            print(f'Empty request from {client_id}.')
             return
-        request_lines = request.splitlines()
+        try:
+            request_lines = request.decode().splitlines()
+        except UnicodeError:
+            print(f'Unknown encoding in request from {client_id}.')
+            return  # Perhaps client tried using HTTPS
         request_line = request_lines[0]
         match request_line.split():
             case ['GET', url, 'HTTP/1.1']:
@@ -96,7 +101,7 @@ def main():
             print(f'Port {server_port} is already in use.', file=sys.stderr)
             exit(1)
         server_socket.listen(1)
-        print(f"Listening on port {server_port}.")
+        print(f"Listening on port {server_port}. Press enter to stop the server.")
         while True:
             client_connection, client_address = server_socket.accept()
             client_id = f'{client_address[0]}:{client_address[1]}'
@@ -107,4 +112,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main_thread = threading.Thread(target=main)
+    main_thread.daemon = True
+    main_thread.start()
+    input()
+    print('Stopping server.')
