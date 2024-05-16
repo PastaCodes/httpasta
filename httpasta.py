@@ -66,7 +66,7 @@ def handle_request(client_connection, client_id):
                                 content = file.read()
                             success_response(client_connection, content, file.name, request_line, client_id)
                             break
-                        except (FileNotFoundError, PermissionError):
+                        except (FileNotFoundError, PermissionError, IsADirectoryError):
                             continue
                     else:
                         error_response(client_connection, 404, request_line, client_id)  # Not Found
